@@ -4,7 +4,7 @@ This repository is a **publishing destination only**. It holds no page source.
 
 The landing page at https://amitdobry.github.io/workshop/ is built from the
 [`amitdobry/memory-game`](https://github.com/amitdobry/memory-game) repository:
-`public/index.html` and the `public/js/` module folder it imports from. **Edit the page there.** Nothing in
+`landing/index.html` and the `public/js/` module folder it imports from. **Edit the page there.** Nothing in
 this repository is edited by hand.
 
 The workflow in `.github/workflows/publish.yml` checks out `memory-game`, assembles

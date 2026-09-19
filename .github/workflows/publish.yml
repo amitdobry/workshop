@@ -55,7 +55,9 @@ jobs:
         if: steps.current.outputs.skip != 'true'
         run: |
           mkdir -p site
-          cp source/public/index.html site/index.html
+          # The landing page has its own source file in memory-game, outside public/, so
+          # that /memory-game/ can be the classroom picker while /workshop/ is this page.
+          cp source/landing/index.html site/index.html
           # The whole module folder: the page imports three modules, and those import
           # others (api.js pulls in contract.js). Copying the folder keeps the graph whole.
           cp -r source/public/js site/js
