@@ -54,9 +54,11 @@ jobs:
       - name: Assemble the site
         if: steps.current.outputs.skip != 'true'
         run: |
-          mkdir -p site/js
+          mkdir -p site
           cp source/public/index.html site/index.html
-          cp source/public/js/attribution.js source/public/js/api.js source/public/js/acquisition.js site/js/
+          # The whole module folder: the page imports three modules, and those import
+          # others (api.js pulls in contract.js). Copying the folder keeps the graph whole.
+          cp -r source/public/js site/js
           touch site/.nojekyll
           printf '%s\n' "${{ steps.current.outputs.source }}" > site/SOURCE_COMMIT
           ls -R site
