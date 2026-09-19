@@ -1,0 +1,79 @@
+# Publish the landing page from amitdobry/memory-game to this repository's GitHub Pages.
+#
+# memory-game is the source of truth; this repository holds nothing to edit. The job
+# checks memory-game out (a public repository, so the default token suffices), keeps only
+# the landing page and the modules it imports, and deploys them. Everything else in
+# memory-game — the games, the picker, the builder — stays at /memory-game/, where the
+# page links to it with absolute URLs.
+name: Publish the landing page
+
+on:
+  repository_dispatch:
+    types: [memory-game-updated]
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out memory-game (the source)
+        uses: actions/checkout@v4
+        with:
+          repository: amitdobry/memory-game
+          ref: main
+          path: source
+
+      # A scheduled run deploys only when the live site is behind the source. Any other
+      # trigger (a dispatch from memory-game, or a manual run) always deploys.
+      - name: Is the live site already current?
+        id: current
+        run: |
+          src="$(git -C source rev-parse HEAD)"
+          live="$(curl -fsS --max-time 20 "https://amitdobry.github.io/workshop/SOURCE_COMMIT?t=$(date +%s)" || echo none)"
+          echo "source=$src" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$live" = "$src" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"; echo "live site already at $src"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"; echo "deploying $src (live: $live)"
+          fi
+
+      - name: Assemble the site
+        if: steps.current.outputs.skip != 'true'
+        run: |
+          mkdir -p site/js
+          cp source/public/index.html site/index.html
+          cp source/public/js/attribution.js source/public/js/api.js source/public/js/acquisition.js site/js/
+          touch site/.nojekyll
+          printf '%s\n' "${{ steps.current.outputs.source }}" > site/SOURCE_COMMIT
+          ls -R site
+
+      - name: Configure Pages
+        if: steps.current.outputs.skip != 'true'
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload
+        if: steps.current.outputs.skip != 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy
+        if: steps.current.outputs.skip != 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
